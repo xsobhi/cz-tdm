@@ -59,7 +59,7 @@ The announcer voices are the files in `czero/sound/tdm/*.wav` (22050 Hz, mono, 1
 
 The mod is a modified build of [ReGameDLL_CS](https://github.com/rehlds/ReGameDLL_CS), the open-source Counter-Strike game library. It installs **next to** the original as `dlls/cstdm.so` (Linux) or `dlls/cstdm.dll` (Windows). Switching modes changes one line in `czero/liblist.gam` and never touches the original files.
 
-The new code lives in `regamedll/dlls/tdm_mod.h` and the end of `regamedll/dlls/player.cpp`, with small hooks in `weapons.cpp`, `multiplay_gamerules.cpp`, `client.cpp`, `game.cpp` and `gamerules.cpp`.
+The new code lives in `regamedll/regamedll/dlls/tdm_mod.h` and the end of `regamedll/regamedll/dlls/player.cpp`, with small hooks in `weapons.cpp`, `multiplay_gamerules.cpp`, `client.cpp`, `game.cpp` and `gamerules.cpp`.
 
 ### Building
 
