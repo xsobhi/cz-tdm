@@ -2842,11 +2842,13 @@ void CArmoury::ArmouryRespawnThink()
 
 	m_iCount = m_iInitialCount;
 	ALERT(at_console, "[TDM] map weapon respawned (%s)\n", m_ItemModels[m_iItem]);
-#ifdef REGAMEDLL_FIXES
-	pev->origin = pev->oldorigin;
-	UTIL_SetOrigin(pev, pev->origin);
-#endif
+
+	// Same order as CArmoury::Restart: make it solid first, then re-link it at its
+	// map position and drop it onto the floor (the placed origin can be in mid-air;
+	// re-linking after Draw() is what makes the pickup trigger touchable again).
 	Draw();
+	UTIL_SetOrigin(pev, pev->oldorigin);
+	DROP_TO_FLOOR(edict());
 }
 
 void CArmoury::KeyValue(KeyValueData *pkvd)
