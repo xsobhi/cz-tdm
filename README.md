@@ -9,8 +9,19 @@ Team Deathmatch for **Counter-Strike: Condition Zero** (Steam), with a one-click
 - **Infinite reserve ammo:** you still reload, but your spare ammo never runs out.
 - **HP regeneration:** after 4 seconds without taking damage you heal 5 HP every half second.
 - **Map weapons respawn:** guns placed on the map come back 20 seconds after someone picks them up.
-- **Kill announcer:** headshot, first blood, double / triple / multi / mega / ultra / monster kill, killing spree, rampage, dominating, unstoppable, godlike, and humiliation for knife kills.
+- **Kill announcer** (real voice actor, the WARLORD pack):
+  - kills in quick succession: double kill, triple kill, annihilation, eradication
+  - kills without dying: rampage (3), dominating (5), unstoppable (7+)
+  - first blood, headshot, and revenge kill (you kill whoever last killed you)
+  - "Team Deathmatch" when you spawn on a new map
 - **Shortcuts:** **CZ TDM** and **CZ Normal**, each switching the mode and then starting the game.
+- **Optional optimizer** (checkboxes in the installer):
+  - raw mouse input
+  - uncapped FPS with V-Sync off
+  - 100 updates/s networking with tuned interpolation
+  - no muzzle-flash lighting
+  - smooth-hosting server rates
+  - forcing the high-performance GPU on laptops
 
 Only the player who **hosts** the game needs the mod. Friends who join can play without installing anything, and their game downloads the announcer voices automatically when they connect.
 
@@ -20,8 +31,12 @@ Download from the [Releases](../../releases) page.
 
 ### Windows
 
-1. Run `CZ-TDM-Setup-x.y.z.exe`. It finds Condition Zero through Steam; if it can't, point it at `...\steamapps\common\Half-Life`.
+1. Run `CZ-TDM-Setup-x.y.z.exe`.
+   - It finds Condition Zero automatically in any of your Steam library folders and shows the folder it found. Click **Browse** if it's wrong; it should be `...\steamapps\common\Half-Life`.
+   - Tick what you want: install the mod, desktop shortcuts, and each optimization. You can also run it just for the optimizations.
 2. Start the game with the **CZ TDM** or **CZ Normal** shortcut (Start menu or desktop).
+
+Run the installer again at any time to change your choices. The optimizations are written into a clearly marked block in `czero\userconfig.cfg` and `czero\listenserver.cfg`, and uninstalling removes them.
 
 Windows SmartScreen may warn about an unknown publisher because the installer isn't code-signed. Click **More info → Run anyway**.
 
@@ -32,7 +47,8 @@ To remove the mod, uninstall **CZ TDM Mod** from *Settings → Apps*. The game g
 ```sh
 tar xzf cz-tdm-linux-x.y.z.tar.gz
 cd cz-tdm-linux-x.y.z
-./install.sh                # or: ./install.sh /path/to/steamapps/common/Half-Life
+./install.sh                # asks about each optimization; --no-optimize = mod only
+                            # or: ./install.sh /path/to/steamapps/common/Half-Life
 ```
 
 Use the **CZ TDM** / **CZ Normal** launchers, or run `czero/tdm-mod/cz-mode.sh tdm|normal|status` from the game folder.
@@ -55,6 +71,8 @@ All settings are in `czero/tdm.cfg`, which only TDM mode reads. Put your own cha
 
 The announcer voices are the files in `czero/sound/tdm/*.wav` (22050 Hz, mono, 16-bit). Replace them with your own if you like; any file you delete is simply skipped.
 
+The file names are `headshot`, `firstblood`, `doublekill`, `triplekill`, `annihilation`, `eradication`, `rampage`, `dominating`, `unstoppable`, `revenge` and `teamdeathmatch`.
+
 ## How it works
 
 The mod is a modified build of [ReGameDLL_CS](https://github.com/rehlds/ReGameDLL_CS), the open-source Counter-Strike game library. It installs **next to** the original as `dlls/cstdm.so` (Linux) or `dlls/cstdm.dll` (Windows). Switching modes changes one line in `czero/liblist.gam` and never touches the original files.
@@ -66,10 +84,11 @@ The new code lives in `regamedll/regamedll/dlls/tdm_mod.h` and the end of `regam
 - **Linux:** `cmake -S regamedll -B build -DCMAKE_BUILD_TYPE=Release -DUSE_STATIC_LIBSTDC=ON && cmake --build build` (needs `gcc-multilib g++-multilib`).
 - **Windows:** `msbuild regamedll/msvc/ReGameDLL.sln -p:Configuration=Release /p:Platform=Win32`.
 - **Releases:** pushing a `v*` tag builds both platforms and the installer in GitHub Actions (`.github/workflows/release.yml`).
-- **Voice pack:** `sounds-src/make_sounds.sh` regenerates it with [Piper](https://github.com/rhasspy/piper), using the `en_US-joe-medium` voice (CC0 dataset).
+- **Voice pack:** `sounds-src/convert_warlord.sh` converts the original WARLORD WAV files into the game's format.
 
 The library name must not contain an underscore: the current CZ engine strips anything after `_`, so `cs_tdm.so` would load as `cs.so`.
 
 ## License
 
-MIT, same as ReGameDLL_CS (see `LICENSE`). The voice pack was generated with Piper TTS from a CC0 voice.
+- **Code:** MIT, same as ReGameDLL_CS (see `LICENSE`).
+- **Announcer voice:** [WARLORD - Announcer Audio Pack](https://voicebosch.itch.io/warlord-announcer-audio-pack) by VoiceBosch, licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The converted files in `dist/czero/sound/tdm/` are under the same license (see `CREDITS.txt` there).

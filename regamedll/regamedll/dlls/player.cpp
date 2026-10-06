@@ -10945,11 +10945,15 @@ struct TDMPlayerState
 	float nextRegenTime;
 
 	int streak;          // kills since last death
+	int lastKilledBy;    // entindex of whoever killed us last (for revenge)
+	bool welcomed;       // "Team Deathmatch" already played this map
 	int multiKills;      // kills inside the multi-kill window
 	float lastKillTime;
 };
 
 static TDMPlayerState g_TDMPlayers[MAX_CLIENTS + 1];
+static void TDM_PlaySound(int snd, CBasePlayer *pOnlyA = nullptr, CBasePlayer *pOnlyB = nullptr);
+static void TDM_Welcome(CBasePlayer *pPlayer);
 static bool g_bTDMFirstBlood = false;
 
 static TDMPlayerState *TDM_State(CBasePlayer *pPlayer)
@@ -11030,6 +11034,13 @@ void TDM_PlayerThink(CBasePlayer *pPlayer)
 		return;
 	}
 
+	if (!st->welcomed)
+	{
+		st->welcomed = true;
+		if (kill_announcer.value != 0.0f)
+			TDM_Welcome(pPlayer);
+	}
+
 	// any health drop counts as damage
 	if (pPlayer->pev->health < st->lastHealth)
 		st->lastDamageTime = gpGlobals->time;
@@ -11047,35 +11058,35 @@ void TDM_PlayerThink(CBasePlayer *pPlayer)
 }
 
 // Announcer sounds live in sound/tdm/<name>.wav; any missing file is simply skipped.
+// Default pack: WARLORD Announcer Audio Pack by VoiceBosch (CC BY-SA 4.0).
 enum TDMSound
 {
 	TDM_SND_HEADSHOT,
 	TDM_SND_FIRSTBLOOD,
-	TDM_SND_HUMILIATION,
-	TDM_SND_DOUBLEKILL,
-	TDM_SND_TRIPLEKILL,
-	TDM_SND_MULTIKILL,
-	TDM_SND_MEGAKILL,
-	TDM_SND_ULTRAKILL,
-	TDM_SND_MONSTERKILL,
-	TDM_SND_KILLINGSPREE,
-	TDM_SND_RAMPAGE,
-	TDM_SND_DOMINATING,
-	TDM_SND_UNSTOPPABLE,
-	TDM_SND_GODLIKE,
+	TDM_SND_DOUBLEKILL,      // 2 kills within 3 seconds
+	TDM_SND_TRIPLEKILL,      // 3
+	TDM_SND_ANNIHILATION,    // 4
+	TDM_SND_ERADICATION,     // 5+
+	TDM_SND_RAMPAGE,         // 3 kills without dying
+	TDM_SND_DOMINATING,      // 5
+	TDM_SND_UNSTOPPABLE,     // 7, 10, 13...
+	TDM_SND_REVENGE,         // killed the player who last killed you
+	TDM_SND_TEAMDEATHMATCH,  // first spawn on a map
 	TDM_SND_COUNT
 };
 
 static const char *g_szTDMSounds[TDM_SND_COUNT] = {
-	"headshot", "firstblood", "humiliation",
-	"doublekill", "triplekill", "multikill", "megakill", "ultrakill", "monsterkill",
-	"killingspree", "rampage", "dominating", "unstoppable", "godlike"
+	"headshot", "firstblood",
+	"doublekill", "triplekill", "annihilation", "eradication",
+	"rampage", "dominating", "unstoppable",
+	"revenge", "teamdeathmatch"
 };
 
 static const char *g_szTDMText[TDM_SND_COUNT] = {
-	"HEADSHOT", "FIRST BLOOD", "HUMILIATION",
-	"DOUBLE KILL", "TRIPLE KILL", "MULTI KILL", "MEGA KILL", "ULTRA KILL", "MONSTER KILL",
-	"KILLING SPREE", "RAMPAGE", "DOMINATING", "UNSTOPPABLE", "GODLIKE"
+	"HEADSHOT", "FIRST BLOOD",
+	"DOUBLE KILL", "TRIPLE KILL", "ANNIHILATION", "ERADICATION",
+	"RAMPAGE", "DOMINATING", "UNSTOPPABLE",
+	"REVENGE KILL", "TEAM DEATHMATCH"
 };
 
 static bool g_bTDMSoundAvailable[TDM_SND_COUNT];
@@ -11104,7 +11115,7 @@ void TDM_Precache()
 	}
 }
 
-static void TDM_PlaySound(int snd, CBasePlayer *pOnlyA = nullptr, CBasePlayer *pOnlyB = nullptr)
+static void TDM_PlaySound(int snd, CBasePlayer *pOnlyA, CBasePlayer *pOnlyB)
 {
 	if (snd < 0 || snd >= TDM_SND_COUNT || !g_bTDMSoundAvailable[snd])
 		return;
@@ -11125,6 +11136,11 @@ static void TDM_PlaySound(int snd, CBasePlayer *pOnlyA = nullptr, CBasePlayer *p
 	}
 }
 
+static void TDM_Welcome(CBasePlayer *pPlayer)
+{
+	TDM_PlaySound(TDM_SND_TEAMDEATHMATCH, pPlayer);
+}
+
 void TDM_PlayerKilled(CBasePlayer *pVictim, CBasePlayer *pKiller)
 {
 	TDMPlayerState *vs = TDM_State(pVictim);
@@ -11132,6 +11148,7 @@ void TDM_PlayerKilled(CBasePlayer *pVictim, CBasePlayer *pKiller)
 	{
 		vs->streak = 0;
 		vs->multiKills = 0;
+		vs->lastKilledBy = (pKiller && pKiller != pVictim) ? pKiller->entindex() : 0;
 	}
 
 	if (kill_announcer.value == 0.0f || !pKiller || pKiller == pVictim || pKiller->m_iTeam == pVictim->m_iTeam)
@@ -11150,37 +11167,30 @@ void TDM_PlayerKilled(CBasePlayer *pVictim, CBasePlayer *pKiller)
 
 	ks->lastKillTime = gpGlobals->time;
 
+	bool revenge = (ks->lastKilledBy == pVictim->entindex());
+	if (revenge)
+		ks->lastKilledBy = 0;
+
 	int snd = -1;
 	bool everyone = true;
 
 	if (ks->multiKills >= 2)
-	{
-		snd = TDM_SND_DOUBLEKILL + Q_min(ks->multiKills - 2, TDM_SND_MONSTERKILL - TDM_SND_DOUBLEKILL);
-	}
+		snd = TDM_SND_DOUBLEKILL + Q_min(ks->multiKills - 2, TDM_SND_ERADICATION - TDM_SND_DOUBLEKILL);
 	else if (!g_bTDMFirstBlood)
-	{
 		snd = TDM_SND_FIRSTBLOOD;
-	}
-	else
+	else if (ks->streak == 3)
+		snd = TDM_SND_RAMPAGE;
+	else if (ks->streak == 5)
+		snd = TDM_SND_DOMINATING;
+	else if (ks->streak >= 7 && (ks->streak - 7) % 3 == 0)
+		snd = TDM_SND_UNSTOPPABLE;
+	else if (revenge)
+		snd = TDM_SND_REVENGE;
+	else if (pVictim->m_bHeadshotKilled)
 	{
-		switch (ks->streak)
-		{
-		case 3:  snd = TDM_SND_KILLINGSPREE; break;
-		case 5:  snd = TDM_SND_RAMPAGE; break;
-		case 7:  snd = TDM_SND_DOMINATING; break;
-		case 9:  snd = TDM_SND_UNSTOPPABLE; break;
-		case 11: snd = TDM_SND_GODLIKE; break;
-		default:
-			if (pKiller->m_pActiveItem && pKiller->m_pActiveItem->m_iId == WEAPON_KNIFE)
-				snd = TDM_SND_HUMILIATION;
-			else if (pVictim->m_bHeadshotKilled)
-			{
-				// headshots are frequent; only the two players involved hear them
-				snd = TDM_SND_HEADSHOT;
-				everyone = false;
-			}
-			break;
-		}
+		// headshots are frequent; only the two players involved hear them
+		snd = TDM_SND_HEADSHOT;
+		everyone = false;
 	}
 
 	g_bTDMFirstBlood = true;

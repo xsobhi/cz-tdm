@@ -1,0 +1,7 @@
+Announcer voice: "WARLORD - Announcer Audio Pack" by VoiceBosch
+https://voicebosch.itch.io/warlord-announcer-audio-pack
+License: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Changes: converted to 22050 Hz mono 16-bit, trailing silence trimmed, loudness normalized,
+renamed (see sounds-src/convert_warlord.sh). These converted files are also CC BY-SA 4.0.

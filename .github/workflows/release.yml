@@ -65,7 +65,28 @@ jobs:
           Copy-Item regamedll/msvc/Release/mp.dll "$s/dlls/cstdm.dll"
           Copy-Item dist/czero/tdm.cfg "$s/"
           Copy-Item -Recurse dist/czero/sound/tdm "$s/sound/"
-          Copy-Item installer/windows/cz-mode.ps1 "$s/tdm-mod/"
+          Copy-Item installer/windows/*.ps1 "$s/tdm-mod/"
+
+      - name: Test scripts on a fake game folder
+        shell: pwsh
+        run: |
+          $hl = "$env:RUNNER_TEMP/Half-Life"; $cz = "$hl/czero"
+          New-Item -ItemType Directory -Force "$cz/tdm-mod" | Out-Null
+          Copy-Item installer/windows/*.ps1 "$cz/tdm-mod/"
+          "game `"Condition Zero`"`r`ngamedll `"dlls\mp.dll`"`r`ngamedll_linux `"dlls/cs.so`"`r`n" | Set-Content -NoNewline "$cz/liblist.gam"
+          "sensitivity `"2`"`r`n" | Set-Content -NoNewline "$cz/userconfig.cfg"
+          & "$cz/tdm-mod/cz-mode.ps1" tdm -NoLaunch
+          if (-not (Select-String -Path "$cz/liblist.gam" -Pattern 'gamedll "dlls\cstdm.dll"' -SimpleMatch)) { throw "tdm switch failed" }
+          & "$cz/tdm-mod/cz-mode.ps1" normal -NoLaunch
+          if (-not (Select-String -Path "$cz/liblist.gam" -Pattern 'gamedll "dlls\mp.dll"' -SimpleMatch)) { throw "normal switch failed" }
+          & "$cz/tdm-mod/optimize.ps1" -Mouse -Fps -Network -Server
+          & "$cz/tdm-mod/optimize.ps1" -Fps
+          $u = Get-Content -Raw "$cz/userconfig.cfg"; Write-Host $u
+          if ($u -notmatch 'fps_max' -or $u -match 'm_rawinput' -or $u -notmatch 'sensitivity') { throw "optimize re-run failed" }
+          & "$cz/tdm-mod/optimize.ps1" -Remove
+          $u = Get-Content -Raw "$cz/userconfig.cfg"
+          if ($u -match 'CZ TDM installer' -or $u -notmatch 'sensitivity') { throw "optimize remove failed" }
+          Write-Host "scripts OK"
 
       - name: Build installer
         shell: pwsh
