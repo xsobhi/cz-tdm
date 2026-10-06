@@ -11098,19 +11098,22 @@ void TDM_Precache()
 	for (int i = 1; i <= MAX_CLIENTS; i++)
 		Q_memset(&g_TDMPlayers[i], 0, sizeof(g_TDMPlayers[i]));
 
+	// The engine keeps the pointer passed to PRECACHE_SOUND (it does not copy the string),
+	// so the paths must live for the whole map - never a stack buffer.
+	static char s_szPaths[TDM_SND_COUNT][64];
+
 	for (int i = 0; i < TDM_SND_COUNT; i++)
 	{
-		char path[64];
-		Q_snprintf(path, sizeof(path), "sound/tdm/%s.wav", g_szTDMSounds[i]);
+		Q_snprintf(s_szPaths[i], sizeof(s_szPaths[i]), "sound/tdm/%s.wav", g_szTDMSounds[i]);
 
 		int length = 0;
-		byte *data = LOAD_FILE_FOR_ME(path, &length);
+		byte *data = LOAD_FILE_FOR_ME(s_szPaths[i], &length);
 		g_bTDMSoundAvailable[i] = (data != nullptr);
 
 		if (data)
 		{
 			FREE_FILE(data);
-			PRECACHE_SOUND(path + 6); // "tdm/<name>.wav", relative to sound/
+			PRECACHE_SOUND(s_szPaths[i] + 6); // "tdm/<name>.wav", relative to sound/
 		}
 	}
 }
