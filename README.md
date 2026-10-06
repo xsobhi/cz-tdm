@@ -14,6 +14,11 @@ Team Deathmatch for **Counter-Strike: Condition Zero** (Steam), with a one-click
   - kills without dying: rampage (3), dominating (5), unstoppable (7+)
   - first blood, headshot, and revenge kill (you kill whoever last killed you)
   - "Team Deathmatch" when you spawn on a new map
+- **Host setup menu:** when the host spawns on a map, an in-game menu asks 3 questions. Press `0` to keep the current settings, or reopen it with `!setup` in chat.
+  - spawns: random anywhere on the map, or team bases
+  - weapons on respawn: keep yours, pick from a menu, or default pistol
+  - free gear on every spawn: armor + helmet + grenades, armor, grenades, or nothing
+- **Weapon menu** (if the host picks it): choose a primary and a pistol on every spawn; `0` repeats your last pick.
 - **Shortcuts:** **CZ TDM** and **CZ Normal**, each switching the mode and then starting the game.
 - **Optional optimizer** (checkboxes in the installer):
   - raw mouse input
@@ -68,6 +73,11 @@ All settings are in `czero/tdm.cfg`, which only TDM mode reads. Put your own cha
 | `mp_hp_regen_interval` | 0.5 | seconds between ticks |
 | `mp_armoury_respawn_time` | 20 | seconds until a picked-up map weapon returns (0 = never) |
 | `mp_kill_announcer` | 1 | announcer sounds and messages |
+| `mp_tdm_ask_host` | 1 | show the host the setup menu on each map |
+| `mp_randomspawn` | 0 | 1 = random spawn spots all over the map (needs the map's `.nav`) |
+| `mp_weapon_menu` | 0 | 1 = pick primary + pistol from a menu on every spawn |
+| `mp_free_armor` | 0 | 1 = kevlar, 2 = kevlar + helmet on every spawn |
+| `mp_spawn_grenades` | 0 | 1 = HE + 2 flashbangs + smoke on every spawn |
 
 The announcer voices are the files in `czero/sound/tdm/*.wav` (22050 Hz, mono, 16-bit). Replace them with your own if you like; any file you delete is simply skipped.
 

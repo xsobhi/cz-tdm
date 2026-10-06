@@ -2648,6 +2648,9 @@ void EXT_FUNC InternalCommand(edict_t *pEntity, const char *pcmd, const char *pa
 	entvars_t *pev = &pEntity->v;
 	CBasePlayer *pPlayer = GetClassPtr<CCSPlayer>((CBasePlayer *)pev);
 
+	if (TDM_ClientCommand(pPlayer, pcmd, parg1))
+		return;
+
 	if (FStrEq(pcmd, "say"))
 	{
 		if (gpGlobals->time >= pPlayer->m_flLastCommandTime[CMD_SAY])
@@ -2915,6 +2918,9 @@ void EXT_FUNC InternalCommand(edict_t *pEntity, const char *pcmd, const char *pa
 	else if (FStrEq(pcmd, "menuselect"))
 	{
 		int slot = Q_atoi(parg1);
+		if (TDM_MenuSelect(pPlayer, slot))
+			return;
+
 		if (pPlayer->m_iJoiningState == JOINED || (pPlayer->m_iMenu != Menu_ChooseAppearance && pPlayer->m_iMenu != Menu_ChooseTeam))
 		{
 			if (slot == 10)
