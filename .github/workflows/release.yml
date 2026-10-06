@@ -76,7 +76,7 @@ jobs:
           "game `"Condition Zero`"`r`ngamedll `"dlls\mp.dll`"`r`ngamedll_linux `"dlls/cs.so`"`r`n" | Set-Content -NoNewline "$cz/liblist.gam"
           "sensitivity `"2`"`r`n" | Set-Content -NoNewline "$cz/userconfig.cfg"
           "sv_aim 0`r`n" | Set-Content -NoNewline "$cz/listenserver.cfg"
-          function Run($script) { & powershell -NoProfile -ExecutionPolicy Bypass -File @args; if ($LASTEXITCODE -ne 0) { throw "$args failed" } }
+          function Run { & powershell -NoProfile -ExecutionPolicy Bypass -File @args; if ($LASTEXITCODE -ne 0) { throw "$args failed" } }
           Run "$cz/tdm-mod/cz-mode.ps1" tdm -NoLaunch
           if (-not (Select-String -Path "$cz/liblist.gam" -Pattern 'gamedll "dlls\cstdm.dll"' -SimpleMatch)) { throw "tdm switch failed" }
           Run "$cz/tdm-mod/cz-mode.ps1" normal -NoLaunch
