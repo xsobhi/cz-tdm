@@ -75,17 +75,24 @@ jobs:
           Copy-Item installer/windows/*.ps1 "$cz/tdm-mod/"
           "game `"Condition Zero`"`r`ngamedll `"dlls\mp.dll`"`r`ngamedll_linux `"dlls/cs.so`"`r`n" | Set-Content -NoNewline "$cz/liblist.gam"
           "sensitivity `"2`"`r`n" | Set-Content -NoNewline "$cz/userconfig.cfg"
-          & powershell -NoProfile -ExecutionPolicy Bypass -File "$cz/tdm-mod/cz-mode.ps1" tdm -NoLaunch
+          "sv_aim 0`r`n" | Set-Content -NoNewline "$cz/listenserver.cfg"
+          function Run($script) { & powershell -NoProfile -ExecutionPolicy Bypass -File @args; if ($LASTEXITCODE -ne 0) { throw "$args failed" } }
+          Run "$cz/tdm-mod/cz-mode.ps1" tdm -NoLaunch
           if (-not (Select-String -Path "$cz/liblist.gam" -Pattern 'gamedll "dlls\cstdm.dll"' -SimpleMatch)) { throw "tdm switch failed" }
-          & powershell -NoProfile -ExecutionPolicy Bypass -File "$cz/tdm-mod/cz-mode.ps1" normal -NoLaunch
+          Run "$cz/tdm-mod/cz-mode.ps1" normal -NoLaunch
           if (-not (Select-String -Path "$cz/liblist.gam" -Pattern 'gamedll "dlls\mp.dll"' -SimpleMatch)) { throw "normal switch failed" }
-          & powershell -NoProfile -ExecutionPolicy Bypass -File "$cz/tdm-mod/optimize.ps1" -Mouse -Fps -Network -Server
-          & powershell -NoProfile -ExecutionPolicy Bypass -File "$cz/tdm-mod/optimize.ps1" -Fps
+          Run "$cz/tdm-mod/optimize.ps1" -Mouse -Fps -Network -Server -Gpu
+          $gpu = (Get-ItemProperty 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences').PSObject.Properties | Where-Object { $_.Name -like '*hl.exe' }
+          if (-not $gpu -or $gpu.Value -ne 'GpuPreference=2;') { throw "gpu preference missing" }
+          if (-not (Select-String -Path "$cz/listenserver.cfg" -Pattern 'sv_unlag 1' -SimpleMatch)) { throw "server block missing" }
+          Run "$cz/tdm-mod/optimize.ps1" -Fps
           $u = Get-Content -Raw "$cz/userconfig.cfg"; Write-Host $u
           if ($u -notmatch 'fps_max' -or $u -match 'm_rawinput' -or $u -notmatch 'sensitivity') { throw "optimize re-run failed" }
-          & powershell -NoProfile -ExecutionPolicy Bypass -File "$cz/tdm-mod/optimize.ps1" -Remove
+          Run "$cz/tdm-mod/optimize.ps1" -Remove
           $u = Get-Content -Raw "$cz/userconfig.cfg"
           if ($u -match 'CZ TDM installer' -or $u -notmatch 'sensitivity') { throw "optimize remove failed" }
+          $l = Get-Content -Raw "$cz/listenserver.cfg"
+          if ($l -match 'CZ TDM installer' -or $l -notmatch 'sv_aim') { throw "server block not removed" }
           Write-Host "scripts OK"
 
       - name: Build installer

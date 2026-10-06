@@ -5,6 +5,7 @@ param(
     [switch]$NoLaunch
 )
 
+$ErrorActionPreference = 'Stop'
 $czero = Split-Path -Parent $PSScriptRoot          # ...\Half-Life\czero
 $liblist = Join-Path $czero 'liblist.gam'
 $dll = if ($Mode -eq 'tdm') { 'dlls\cstdm.dll' } else { 'dlls\mp.dll' }

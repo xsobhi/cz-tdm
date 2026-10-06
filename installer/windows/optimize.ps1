@@ -12,6 +12,7 @@ param(
     [switch]$Remove
 )
 
+$ErrorActionPreference = 'Stop'
 $czero = Split-Path -Parent $PSScriptRoot
 $hlExe = Join-Path (Split-Path -Parent $czero) 'hl.exe'
 $begin = '// >>> CZ TDM installer: optimizations (re-run the installer to change, uninstall to remove)'
@@ -31,35 +32,35 @@ function Set-Block([string]$file, [string[]]$lines) {
     [IO.File]::WriteAllText($file, $text, (New-Object System.Text.ASCIIEncoding))
 }
 
-$client = @()
-$server = @()
+$clientLines = @()
+$serverLines = @()
 
 if (-not $Remove) {
     if ($Mouse) {
-        $client += '// mouse: raw input, no acceleration or smoothing', 'm_rawinput "1"', 'm_filter "0"', 'm_customaccel "0"', 'joystick "0"', '-jlook'
+        $clientLines += '// mouse: raw input, no acceleration or smoothing', 'm_rawinput "1"', 'm_filter "0"', 'm_customaccel "0"', 'joystick "0"', '-jlook'
     }
     if ($Fps) {
-        $client += '// uncapped fps, no V-Sync input delay', 'gl_vsync "0"', 'fps_override "1"', 'fps_max "1000"'
+        $clientLines += '// uncapped fps, no V-Sync input delay', 'gl_vsync "0"', 'fps_override "1"', 'fps_max "1000"'
     }
     if ($Network) {
-        $client += '// network: 100 updates/s, small interpolation buffer, lag compensation',
+        $clientLines += '// network: 100 updates/s, small interpolation buffer, lag compensation',
             'rate "100000"', 'cl_updaterate "100"', 'cl_cmdrate "100"', 'ex_interp "0.05"', 'cl_lc "1"', 'cl_lw "1"'
     }
     if ($Perf) {
-        $client += '// no muzzle-flash wall lighting (steadier fps while shooting)', 'r_dynamic "0"'
+        $clientLines += '// no muzzle-flash wall lighting (steadier fps while shooting)', 'r_dynamic "0"'
     }
     if ($NetGraph) {
-        $client += '// fps / ping / loss in the bottom right (net_graph 0 to hide)', 'net_graph "3"', 'net_graphpos "1"'
+        $clientLines += '// fps / ping / loss in the bottom right (net_graph 0 to hide)', 'net_graph "3"', 'net_graphpos "1"'
     }
     if ($Server) {
-        $server += '// smooth hosting: up to 102 updates/s per player, minimum rates, lag compensation up to 1s',
+        $serverLines += '// smooth hosting: up to 102 updates/s per player, minimum rates, lag compensation up to 1s',
             'sv_maxupdaterate 102', 'sv_minupdaterate 60', 'sv_maxrate 100000', 'sv_minrate 50000',
             'sv_unlag 1', 'sv_unlagpush 0', 'sv_unlagsamples 1', 'sv_maxunlag 1'
     }
 }
 
-Set-Block (Join-Path $czero 'userconfig.cfg') $client
-Set-Block (Join-Path $czero 'listenserver.cfg') $server
+Set-Block (Join-Path $czero 'userconfig.cfg') $clientLines
+Set-Block (Join-Path $czero 'listenserver.cfg') $serverLines
 
 # Windows "Graphics settings" preference for hl.exe (2 = high performance GPU)
 $gpuKey = 'HKCU:\Software\Microsoft\DirectX\UserGpuPreferences'
