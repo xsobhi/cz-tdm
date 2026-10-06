@@ -10928,6 +10928,7 @@ cvar_t kill_announcer         = { "mp_kill_announcer", "0", 0, 0.0f, nullptr };
 cvar_t weapon_menu            = { "mp_weapon_menu", "0", 0, 0.0f, nullptr };
 cvar_t spawn_grenades         = { "mp_spawn_grenades", "0", 0, 0.0f, nullptr };
 cvar_t tdm_ask_host           = { "mp_tdm_ask_host", "0", 0, 0.0f, nullptr };
+cvar_t weapon_menu_bindv      = { "mp_weapon_menu_bindv", "1", 0, 1.0f, nullptr };
 
 void TDM_RegisterCvars()
 {
@@ -10940,6 +10941,7 @@ void TDM_RegisterCvars()
 	CVAR_REGISTER(&weapon_menu);
 	CVAR_REGISTER(&spawn_grenades);
 	CVAR_REGISTER(&tdm_ask_host);
+	CVAR_REGISTER(&weapon_menu_bindv);
 }
 
 struct TDMPlayerState
@@ -10960,6 +10962,7 @@ struct TDMPlayerState
 	float menuExpire;    // gpGlobals->time when it closes, 0 = never
 	int lastPrimary;     // weapon menu: last picks (WeaponIdType)
 	int lastSecondary;
+	bool boundV;         // "bind v guns" already sent this map
 	int multiKills;      // kills inside the multi-kill window
 	float lastKillTime;
 };
@@ -11128,7 +11131,14 @@ void TDM_Precache()
 	TDM_ApplyHostChoices();
 
 	for (int i = 1; i <= MAX_CLIENTS; i++)
+	{
+		// weapon menu picks survive map changes; everything else starts fresh
+		int lastPrimary = g_TDMPlayers[i].lastPrimary;
+		int lastSecondary = g_TDMPlayers[i].lastSecondary;
 		Q_memset(&g_TDMPlayers[i], 0, sizeof(g_TDMPlayers[i]));
+		g_TDMPlayers[i].lastPrimary = lastPrimary;
+		g_TDMPlayers[i].lastSecondary = lastSecondary;
+	}
 
 	// The engine keeps the pointer passed to PRECACHE_SOUND (it does not copy the string),
 	// so the paths must live for the whole map - never a stack buffer.
@@ -11421,6 +11431,23 @@ static void TDM_PickWeapon(CBasePlayer *pPlayer, TDMPlayerState *st, const char 
 	}
 }
 
+static void TDM_GiveLastPicks(CBasePlayer *pPlayer, TDMPlayerState *st)
+{
+	WeaponInfoStruct *p = GetWeaponInfo(st->lastPrimary);
+	WeaponInfoStruct *s2 = GetWeaponInfo(st->lastSecondary);
+	ALERT(at_console, "[TDM] %s gets their picks: %s + %s\n", STRING(pPlayer->pev->netname),
+		(p && p->entityName) ? p->entityName : "-", (s2 && s2->entityName) ? s2->entityName : "-");
+
+	if (s2 && s2->entityName)
+		TDM_PickWeapon(pPlayer, st, s2->entityName, false);
+
+	if (p && p->entityName)
+	{
+		TDM_PickWeapon(pPlayer, st, p->entityName, true);
+		pPlayer->SelectItem(p->entityName);
+	}
+}
+
 static void TDM_AnnounceSetup()
 {
 	static const char *spawns[] = { "team spawns", "random spawns" };
@@ -11494,14 +11521,7 @@ bool TDM_MenuSelect(CBasePlayer *pPlayer, int slot)
 		if (slot == 10)
 		{
 			// same as last time: both weapons, no more questions
-			WeaponInfoStruct *p = GetWeaponInfo(st->lastPrimary);
-			WeaponInfoStruct *s2 = GetWeaponInfo(st->lastSecondary);
-			if (s2 && s2->entityName) TDM_PickWeapon(pPlayer, st, s2->entityName, false);
-			if (p && p->entityName)
-			{
-				TDM_PickWeapon(pPlayer, st, p->entityName, true);
-				pPlayer->SelectItem(p->entityName);
-			}
+			TDM_GiveLastPicks(pPlayer, st);
 			return true;
 		}
 
@@ -11528,6 +11548,8 @@ bool TDM_MenuSelect(CBasePlayer *pPlayer, int slot)
 		WeaponInfoStruct *p = GetWeaponInfo(st->lastPrimary);
 		if (p && p->entityName && pPlayer->m_rgpPlayerItems[PRIMARY_WEAPON_SLOT])
 			pPlayer->SelectItem(p->entityName);
+
+		ClientPrint(pPlayer->pev, HUD_PRINTTALK, "You will respawn with these weapons. Press V (or type !guns) to change them.\n");
 		return true;
 	}
 	}
@@ -11568,15 +11590,53 @@ void TDM_OnSpawnEquipped(CBasePlayer *pPlayer)
 	}
 
 	TDMPlayerState *st = TDM_State(pPlayer);
-	if (st && st->menu >= TDM_MENU_SETUP_SPAWNS && st->menu <= TDM_MENU_SETUP_GEAR)
+	if (!st)
+		return;
+
+	if (weapon_menu_bindv.value != 0.0f && !st->boundV)
+	{
+		st->boundV = true;
+		CLIENT_COMMAND(pPlayer->edict(), "bind v guns\n");
+	}
+
+	if (st->lastPrimary || st->lastSecondary)
+	{
+		// respawn with what they picked; V (or "guns" / !guns) changes it
+		TDM_GiveLastPicks(pPlayer, st);
+		return;
+	}
+
+	if (st->menu >= TDM_MENU_SETUP_SPAWNS && st->menu <= TDM_MENU_SETUP_GEAR)
 		return; // the host is still answering the setup
 
 	TDM_OpenMenu(pPlayer, TDM_MENU_PRIMARY);
 }
 
-// Console / chat command to reopen the host setup ("tdm_setup" or "!setup" in chat)
+// Console / chat commands: "guns" (bound to V) / !guns reopen the weapon menu,
+// "tdm_setup" / !setup reopen the host setup
 bool TDM_ClientCommand(CBasePlayer *pPlayer, const char *pcmd, const char *parg1)
 {
+	bool say = (FStrEq(pcmd, "say") || FStrEq(pcmd, "say_team")) && parg1;
+
+	if (FStrEq(pcmd, "guns") || (say && (FStrEq(parg1, "!guns") || FStrEq(parg1, "/guns"))))
+	{
+		if (weapon_menu.value == 0.0f)
+			ClientPrint(pPlayer->pev, HUD_PRINTTALK, "The weapon menu is off on this server (host: !setup).\n");
+		else if (pPlayer->IsAlive())
+		{
+			ALERT(at_console, "[TDM] %s opened the weapon menu\n", STRING(pPlayer->pev->netname));
+			TDM_OpenMenu(pPlayer, TDM_MENU_PRIMARY);
+		}
+		else
+		{
+			// dead: forget the picks so the menu opens on respawn
+			TDMPlayerState *st = TDM_State(pPlayer);
+			if (st) st->lastPrimary = st->lastSecondary = 0;
+			ClientPrint(pPlayer->pev, HUD_PRINTTALK, "The weapon menu will open when you respawn.\n");
+		}
+		return !say;
+	}
+
 	bool chat = (FStrEq(pcmd, "say") || FStrEq(pcmd, "say_team")) && parg1
 		&& (FStrEq(parg1, "!setup") || FStrEq(parg1, "/setup"));
 
