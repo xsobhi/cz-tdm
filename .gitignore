@@ -1,0 +1,7 @@
+build-linux/
+build/
+stage-linux/
+stage-windows/
+out/
+sounds-src/tmp/
+*.tar.gz

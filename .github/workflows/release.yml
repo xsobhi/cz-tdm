@@ -1,0 +1,97 @@
+name: Build and release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install 32-bit toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib g++-multilib cmake
+
+      - name: Build cstdm.so
+        run: |
+          cmake -S regamedll -B build -DCMAKE_BUILD_TYPE=Release -DUSE_STATIC_LIBSTDC=ON
+          cmake --build build -j"$(nproc)"
+
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG="cz-tdm-linux-$VERSION"
+          mkdir -p "$PKG/czero/dlls" "$PKG/czero/tdm-mod"
+          cp build/regamedll/cs.so "$PKG/czero/dlls/cstdm.so"
+          cp -r dist/czero/tdm.cfg dist/czero/sound "$PKG/czero/"
+          cp installer/linux/cz-mode.sh "$PKG/czero/tdm-mod/"
+          cp installer/linux/install.sh README.md LICENSE "$PKG/"
+          tar czf "$PKG.tar.gz" "$PKG"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: cz-tdm-linux-*.tar.gz
+
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build cstdm.dll
+        shell: pwsh
+        run: |
+          msbuild regamedll/msvc/ReGameDLL.sln -p:Configuration=Release /t:Build /p:Platform=Win32 /p:PlatformToolset=v143 /p:XPDeprecationWarning=false
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Stage files
+        shell: pwsh
+        run: |
+          $s = "stage-windows/czero"
+          New-Item -ItemType Directory -Force "$s/dlls", "$s/tdm-mod", "$s/sound" | Out-Null
+          Copy-Item regamedll/msvc/Release/mp.dll "$s/dlls/cstdm.dll"
+          Copy-Item dist/czero/tdm.cfg "$s/"
+          Copy-Item -Recurse dist/czero/sound/tdm "$s/sound/"
+          Copy-Item installer/windows/cz-mode.ps1 "$s/tdm-mod/"
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $version = "$env:GITHUB_REF_NAME".TrimStart('v')
+          if (-not $version -or $version -eq 'main') { $version = 'dev' }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" "/DSrc=$PWD\stage-windows" installer/windows/cz-tdm.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/*.exe
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
