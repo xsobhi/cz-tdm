@@ -22,7 +22,7 @@ function Set-Block([string]$file, [string[]]$lines) {
     if (Test-Path $file) { $text = [IO.File]::ReadAllText($file) }
     $pattern = '(?s)\r?\n?' + [regex]::Escape($begin) + '.*?' + [regex]::Escape($end) + '\r?\n?'
     $text = [regex]::Replace($text, $pattern, "`r`n")
-    $text = $text.TrimEnd("`r", "`n")
+    $text = $text.TrimEnd([char[]]"`r`n")
     if ($lines.Count -gt 0) {
         $text += "`r`n`r`n" + $begin + "`r`n" + ($lines -join "`r`n") + "`r`n" + $end + "`r`n"
     } elseif ($text.Length -gt 0) {
