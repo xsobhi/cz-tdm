@@ -63,8 +63,8 @@ DESK="$(xdg-user-dir DESKTOP 2>/dev/null || echo ~/Desktop)"
 
 if [ $UNINSTALL = 1 ]; then
   "$CZ/tdm-mod/cz-mode.sh" normal || true
-  rm -rf "$CZ/dlls/cstdm.so" "$CZ/sound/tdm" "$CZ/tdm-mod" "$CZ/tdm.cfg"
-  rm -f "$APPS/cz-tdm.desktop" "$APPS/cz-normal.desktop" "$DESK/cz-tdm.desktop" "$DESK/cz-normal.desktop"
+  rm -rf "$CZ/dlls/cstdm.so" "$CZ/sound/tdm" "$CZ/tdm-mod" "$CZ/tdm.cfg" "$CZ/tdm_mode.cfg"
+  rm -f "$APPS/cz-tdm.desktop" "$APPS/cz-ffa.desktop" "$APPS/cz-normal.desktop" "$DESK/cz-tdm.desktop" "$DESK/cz-ffa.desktop" "$DESK/cz-normal.desktop"
   set_block "$CZ/userconfig.cfg"
   set_block "$CZ/listenserver.cfg"
   echo "Uninstalled. CZ is back to the original game (optimizations removed too)."
@@ -93,10 +93,11 @@ DESKTOP
   chmod +x "$1"
 }
 make_launcher "$APPS/cz-tdm.desktop" "CZ TDM" tdm
+make_launcher "$APPS/cz-ffa.desktop" "CZ FFA" ffa
 make_launcher "$APPS/cz-normal.desktop" "CZ Normal" normal
 if [ -d "$DESK" ]; then
-  cp "$APPS/cz-tdm.desktop" "$APPS/cz-normal.desktop" "$DESK/"
-  for f in "$DESK/cz-tdm.desktop" "$DESK/cz-normal.desktop"; do
+  cp "$APPS/cz-tdm.desktop" "$APPS/cz-ffa.desktop" "$APPS/cz-normal.desktop" "$DESK/"
+  for f in "$DESK/cz-tdm.desktop" "$DESK/cz-ffa.desktop" "$DESK/cz-normal.desktop"; do
     gio set "$f" metadata::trusted true 2>/dev/null || true
   done
 fi
@@ -105,7 +106,7 @@ echo
 echo "Make the game smoother:"
 CLIENT=(); SERVER=()
 ask "  Raw mouse input (no acceleration or smoothing)?" y && CLIENT+=('// mouse: raw input, no acceleration or smoothing' 'm_rawinput "1"' 'm_filter "0"' 'm_customaccel "0"' 'joystick "0"' '-jlook')
-ask "  Uncap FPS and turn V-Sync off?" y && CLIENT+=('// uncapped fps, no V-Sync input delay' 'gl_vsync "0"' 'fps_override "1"' 'fps_max "1000"')
+ask "  Set 101 FPS and turn V-Sync off?" y && CLIENT+=('// 101 FPS, no V-Sync input delay' 'gl_vsync "0"' 'fps_override "1"' 'fps_max "101"')
 ask "  Smooth online play (100 updates/s, rates, interpolation)?" y && CLIENT+=('// network: 100 updates/s, small interpolation buffer, lag compensation' 'rate "100000"' 'cl_updaterate "100"' 'cl_cmdrate "100"' 'ex_interp "0.05"' 'cl_lc "1"' 'cl_lw "1"')
 ask "  No muzzle-flash wall lighting (steadier FPS while shooting)?" y && CLIENT+=('// no muzzle-flash wall lighting (steadier fps while shooting)' 'r_dynamic "0"')
 ask "  Show FPS / ping / loss in the corner?" n && CLIENT+=('// fps / ping / loss in the bottom right (net_graph 0 to hide)' 'net_graph "3"' 'net_graphpos "1"')
@@ -119,4 +120,4 @@ fi
 fi
 echo
 echo "Done. Use the \"CZ TDM\" / \"CZ Normal\" shortcuts (menu or desktop),"
-echo "or: $CZ/tdm-mod/cz-mode.sh tdm|normal"
+echo "or: $CZ/tdm-mod/cz-mode.sh tdm|ffa|normal"

@@ -31,10 +31,10 @@ SelectDirLabel3=Select your Half-Life folder (the one that contains the "czero" 
 SelectDirBrowseLabel=Setup found the folder below. If it is wrong, click Browse.
 
 [Tasks]
-Name: mod; Description: "Install the TDM mod (respawn, keep weapons, HP regen, announcer...)"; GroupDescription: "Mod:"
-Name: mod\desktopicons; Description: "Desktop shortcuts: CZ TDM / CZ Normal"; GroupDescription: "Mod:"
+Name: mod; Description: "Install the TDM / FFA mod (respawn, keep weapons, HP regen, announcer...)"; GroupDescription: "Mod:"
+Name: mod\desktopicons; Description: "Desktop shortcuts: CZ TDM / CZ FFA / CZ Normal"; GroupDescription: "Mod:"
 Name: opt_mouse; Description: "Raw mouse input (no acceleration or smoothing)"; GroupDescription: "Make the game smoother:"
-Name: opt_fps; Description: "Uncap FPS and turn V-Sync off (less input delay)"; GroupDescription: "Make the game smoother:"
+Name: opt_fps; Description: "101 FPS and V-Sync off (less input delay)"; GroupDescription: "Make the game smoother:"
 Name: opt_net; Description: "Smooth online play (100 updates/s, better rates and interpolation)"; GroupDescription: "Make the game smoother:"
 Name: opt_perf; Description: "No muzzle-flash wall lighting (steadier FPS while shooting)"; GroupDescription: "Make the game smoother:"
 Name: opt_server; Description: "Smooth hosting for friends (server rates and lag compensation)"; GroupDescription: "Make the game smoother:"
@@ -50,8 +50,10 @@ Source: "{#Src}\czero\tdm-mod\*"; DestDir: "{app}\czero\tdm-mod"; Flags: ignorev
 
 [Icons]
 Name: "{autoprograms}\CZ TDM"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\czero\tdm-mod\cz-mode.ps1"" tdm"; IconFilename: "{app}\czero\game.ico"; Comment: "Counter-Strike: Condition Zero - Team Deathmatch"; Tasks: mod
+Name: "{autoprograms}\CZ FFA"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\czero\tdm-mod\cz-mode.ps1"" ffa"; IconFilename: "{app}\czero\game.ico"; Comment: "Counter-Strike: Condition Zero - Free for all"; Tasks: mod
 Name: "{autoprograms}\CZ Normal"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\czero\tdm-mod\cz-mode.ps1"" normal"; IconFilename: "{app}\czero\game.ico"; Comment: "Counter-Strike: Condition Zero - original game"; Tasks: mod
 Name: "{autodesktop}\CZ TDM"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\czero\tdm-mod\cz-mode.ps1"" tdm"; IconFilename: "{app}\czero\game.ico"; Tasks: mod\desktopicons
+Name: "{autodesktop}\CZ FFA"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\czero\tdm-mod\cz-mode.ps1"" ffa"; IconFilename: "{app}\czero\game.ico"; Tasks: mod\desktopicons
 Name: "{autodesktop}\CZ Normal"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\czero\tdm-mod\cz-mode.ps1"" normal"; IconFilename: "{app}\czero\game.ico"; Tasks: mod\desktopicons
 
 [Run]

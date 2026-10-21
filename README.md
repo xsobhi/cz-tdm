@@ -1,9 +1,10 @@
 # CZ TDM
 
-Team Deathmatch for **Counter-Strike: Condition Zero** (Steam), with a one-click switch back to the original game.
+Team Deathmatch and Free for All for **Counter-Strike: Condition Zero** (Steam), with a one-click switch back to the original game.
 
 ## What you get
 
+- **Free for all:** choose **CZ FFA** or select FFA in `!setup`; everyone is an enemy, including bots with the same team model.
 - **Team deathmatch:** rounds never end and you respawn 2 seconds after dying, with 2 seconds of spawn protection.
 - **Keep your weapons:** you respawn with the guns you died with, with a full magazine and full reserve ammo.
 - **Infinite reserve ammo:** you still reload, but your spare ammo never runs out.
@@ -14,15 +15,16 @@ Team Deathmatch for **Counter-Strike: Condition Zero** (Steam), with a one-click
   - kills without dying: rampage (3), dominating (5), unstoppable (7+)
   - first blood, headshot, and revenge kill (you kill whoever last killed you)
   - "Team Deathmatch" when you spawn on a new map
-- **Host setup menu:** when the host spawns on a map, an in-game menu asks 3 questions. Press `0` to keep the current settings, or reopen it with `!setup` in chat.
+- **Host setup menu:** when the host spawns on a map, an in-game menu asks 4 questions. Press `0` to keep the current settings, or reopen it with `!setup` in chat.
+  - mode: team deathmatch or free for all
   - spawns: random anywhere on the map, or team bases
   - weapons on respawn: keep yours, pick from a menu, or default pistol
   - free gear on every spawn: armor + helmet + grenades, armor, grenades, or nothing
-- **Weapon menu** (if the host picks it): choose a primary and a pistol on every spawn; `0` repeats your last pick.
-- **Shortcuts:** **CZ TDM** and **CZ Normal**, each switching the mode and then starting the game.
+- **Weapon menu** (if the host picks it): choose a primary and a pistol once; both are automatically restored with full ammo after death. Use `!guns` in chat (or `tdm_guns` in the console) to change them. `0` repeats your last pick.
+- **Shortcuts:** **CZ TDM**, **CZ FFA**, and **CZ Normal**, each switching the mode and then starting the game.
 - **Optional optimizer** (checkboxes in the installer):
   - raw mouse input
-  - uncapped FPS with V-Sync off
+  - 101 FPS with V-Sync off
   - 100 updates/s networking with tuned interpolation
   - no muzzle-flash lighting
   - smooth-hosting server rates
@@ -39,7 +41,7 @@ Download from the [Releases](../../releases) page.
 1. Run `CZ-TDM-Setup-x.y.z.exe`.
    - It finds Condition Zero automatically in any of your Steam library folders and shows the folder it found. Click **Browse** if it's wrong; it should be `...\steamapps\common\Half-Life`.
    - Tick what you want: install the mod, desktop shortcuts, and each optimization. You can also run it just for the optimizations.
-2. Start the game with the **CZ TDM** or **CZ Normal** shortcut (Start menu or desktop).
+2. Start the game with the **CZ TDM**, **CZ FFA**, or **CZ Normal** shortcut (Start menu or desktop).
 
 Run the installer again at any time to change your choices. The optimizations are written into a clearly marked block in `czero\userconfig.cfg` and `czero\listenserver.cfg`, and uninstalling removes them.
 
@@ -56,15 +58,16 @@ cd cz-tdm-linux-x.y.z
                             # or: ./install.sh /path/to/steamapps/common/Half-Life
 ```
 
-Use the **CZ TDM** / **CZ Normal** launchers, or run `czero/tdm-mod/cz-mode.sh tdm|normal|status` from the game folder.
+Use the **CZ TDM** / **CZ FFA** / **CZ Normal** launchers, or run `czero/tdm-mod/cz-mode.sh tdm|ffa|normal|status` from the game folder.
 To remove the mod, run `./install.sh --uninstall`.
 
 ## Settings
 
-All settings are in `czero/tdm.cfg`, which only TDM mode reads. Put your own changes in `czero/tdm_custom.cfg` so updates don't overwrite them.
+All settings are in `czero/tdm.cfg`, which TDM and FFA modes read. Put your own changes in `czero/tdm_custom.cfg` so updates don't overwrite them.
 
 | Setting | Default | Meaning |
 |---|---|---|
+| `mp_freeforall` | 0 | 1 = everyone is an enemy (the FFA launcher selects this automatically) |
 | `mp_forcerespawn` | 2 | seconds until respawn |
 | `mp_respawn_keep_weapons` | 1 | respawn with the weapons you died with |
 | `mp_infinite_ammo` | 2 | 2 = infinite reserve ammo, 1 = infinite magazine |
@@ -75,7 +78,7 @@ All settings are in `czero/tdm.cfg`, which only TDM mode reads. Put your own cha
 | `mp_kill_announcer` | 1 | announcer sounds and messages |
 | `mp_tdm_ask_host` | 1 | show the host the setup menu on each map |
 | `mp_randomspawn` | 0 | 1 = random spawn spots all over the map (needs the map's `.nav`) |
-| `mp_weapon_menu` | 0 | 1 = pick primary + pistol from a menu on every spawn |
+| `mp_weapon_menu` | 0 | 1 = choose primary + pistol once, automatically reuse after death; `!guns` changes them |
 | `mp_free_armor` | 0 | 1 = kevlar, 2 = kevlar + helmet on every spawn |
 | `mp_spawn_grenades` | 0 | 1 = HE + 2 flashbangs + smoke on every spawn |
 

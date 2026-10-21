@@ -3,7 +3,7 @@
 # (hosting); running again replaces the block, -Remove takes it out.
 param(
     [switch]$Mouse,      # raw mouse input, no acceleration/smoothing
-    [switch]$Fps,        # uncapped FPS, V-Sync off
+    [switch]$Fps,        # 101 FPS, V-Sync off
     [switch]$Network,    # 100 updates/s, rates, interpolation, lag compensation
     [switch]$Perf,       # no muzzle-flash lighting
     [switch]$NetGraph,   # fps/ping/loss in the corner
@@ -40,7 +40,7 @@ if (-not $Remove) {
         $clientLines += '// mouse: raw input, no acceleration or smoothing', 'm_rawinput "1"', 'm_filter "0"', 'm_customaccel "0"', 'joystick "0"', '-jlook'
     }
     if ($Fps) {
-        $clientLines += '// uncapped fps, no V-Sync input delay', 'gl_vsync "0"', 'fps_override "1"', 'fps_max "1000"'
+        $clientLines += '// 101 FPS, no V-Sync input delay', 'gl_vsync "0"', 'fps_override "1"', 'fps_max "101"'
     }
     if ($Network) {
         $clientLines += '// network: 100 updates/s, small interpolation buffer, lag compensation',

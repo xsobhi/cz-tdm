@@ -7,9 +7,9 @@
  *  mp_hp_regen_interval     - seconds between regen ticks
  *  mp_armoury_respawn_time  - seconds until a picked-up map weapon (armoury_entity) comes back (0 = never)
  *  mp_kill_announcer        - headshot / double kill / killing spree... sounds and messages
- *  mp_weapon_menu           - pick primary + pistol from a menu on every spawn
+ *  mp_weapon_menu           - pick primary + pistol once, reuse after death; !guns to change
  *  mp_spawn_grenades        - HE + 2 flashbangs + smoke on every spawn
- *  mp_tdm_ask_host          - the listen-server host gets a setup menu on each map (spawns / weapons / gear);
+ *  mp_tdm_ask_host          - the listen-server host gets a setup menu on each map (mode / spawns / weapons / gear);
  *                             reopen it with "tdm_setup" in the console or "!setup" in chat
  */
 

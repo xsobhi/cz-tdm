@@ -10973,6 +10973,7 @@ static void TDM_OpenMenu(CBasePlayer *pPlayer, int menu);
 enum TDMMenu
 {
 	TDM_MENU_NONE,
+	TDM_MENU_SETUP_MODE,
 	TDM_MENU_SETUP_SPAWNS,
 	TDM_MENU_SETUP_WEAPONS,
 	TDM_MENU_SETUP_GEAR,
@@ -11067,7 +11068,7 @@ void TDM_PlayerThink(CBasePlayer *pPlayer)
 			TDM_Welcome(pPlayer);
 
 		if (tdm_ask_host.value != 0.0f && TDM_IsHost(pPlayer))
-			TDM_OpenMenu(pPlayer, TDM_MENU_SETUP_SPAWNS);
+			TDM_OpenMenu(pPlayer, TDM_MENU_SETUP_MODE);
 	}
 
 	// any health drop counts as damage
@@ -11173,7 +11174,10 @@ static void TDM_PlaySound(int snd, CBasePlayer *pOnlyA, CBasePlayer *pOnlyB)
 
 static void TDM_Welcome(CBasePlayer *pPlayer)
 {
-	TDM_PlaySound(TDM_SND_TEAMDEATHMATCH, pPlayer);
+	if (CSGameRules()->IsFreeForAll())
+		ClientPrint(pPlayer->pev, HUD_PRINTCENTER, "FREE FOR ALL");
+	else
+		TDM_PlaySound(TDM_SND_TEAMDEATHMATCH, pPlayer);
 }
 
 void TDM_PlayerKilled(CBasePlayer *pVictim, CBasePlayer *pKiller)
@@ -11186,7 +11190,8 @@ void TDM_PlayerKilled(CBasePlayer *pVictim, CBasePlayer *pKiller)
 		vs->lastKilledBy = (pKiller && pKiller != pVictim) ? pKiller->entindex() : 0;
 	}
 
-	if (kill_announcer.value == 0.0f || !pKiller || pKiller == pVictim || pKiller->m_iTeam == pVictim->m_iTeam)
+	if (kill_announcer.value == 0.0f || !pKiller || pKiller == pVictim
+		|| (!CSGameRules()->IsFreeForAll() && pKiller->m_iTeam == pVictim->m_iTeam))
 		return;
 
 	TDMPlayerState *ks = TDM_State(pKiller);
@@ -11252,6 +11257,7 @@ void TDM_PlayerKilled(CBasePlayer *pVictim, CBasePlayer *pKiller)
 // ---------------------------------------------------------------------------
 
 // The host's answers survive map changes (tdm.cfg runs again on every map, so they are re-applied after it).
+static int g_iHostMode = -1;     // 0 team deathmatch, 1 free for all
 static int g_iHostSpawns = -1;   // 0 team spawns, 1 random
 static int g_iHostWeapons = -1;  // 0 default pistol, 1 keep, 2 menu
 static int g_iHostGear = -1;     // 0 nothing, 1 armor+grenades, 2 armor, 3 grenades
@@ -11264,6 +11270,9 @@ static bool TDM_IsHost(CBasePlayer *pPlayer)
 
 static void TDM_ApplyHostChoices()
 {
+	if (g_iHostMode >= 0)
+		CVAR_SET_FLOAT("mp_freeforall", g_iHostMode ? 1.0f : 0.0f);
+
 	if (g_iHostSpawns >= 0)
 		CVAR_SET_FLOAT("mp_randomspawn", g_iHostSpawns ? 1.0f : 0.0f);
 
@@ -11344,10 +11353,20 @@ static void TDM_OpenMenu(CBasePlayer *pPlayer, int menu)
 	char text[512];
 	switch (menu)
 	{
+	case TDM_MENU_SETUP_MODE:
+		st->menuExpire = 0;
+		Q_snprintf(text, sizeof(text),
+			"\\yDeathmatch setup (1/4): Game mode\\w\n\n"
+			"1. Team Deathmatch\n"
+			"2. Free for all - everyone is an enemy\n"
+			"\n0. Keep current settings, skip setup\n");
+		ShowMenu(pPlayer, MENU_KEY(1) | MENU_KEY(2) | MENU_KEY0, -1, FALSE, text);
+		break;
+
 	case TDM_MENU_SETUP_SPAWNS:
 		st->menuExpire = 0; // the host's setup waits for an answer
 		Q_snprintf(text, sizeof(text),
-			"\\yTDM setup (1/3): Spawns\\w\n\n"
+			"\\yDeathmatch setup (2/4): Spawns\\w\n\n"
 			"1. Random - anywhere on the map\n"
 			"2. Team bases (T / CT spawn)\n"
 			"\n0. Keep current settings, skip setup\n");
@@ -11357,9 +11376,9 @@ static void TDM_OpenMenu(CBasePlayer *pPlayer, int menu)
 	case TDM_MENU_SETUP_WEAPONS:
 		st->menuExpire = 0;
 		Q_snprintf(text, sizeof(text),
-			"\\yTDM setup (2/3): Weapons on respawn\\w\n\n"
+			"\\yDeathmatch setup (3/4): Weapons on respawn\\w\n\n"
 			"1. Keep the weapons you died with\n"
-			"2. Pick weapons from a menu\n"
+			"2. Pick once, reuse on respawn (!guns to change)\n"
 			"3. Default pistol (buy the rest)\n");
 		ShowMenu(pPlayer, MENU_KEY(1) | MENU_KEY(2) | MENU_KEY(3), -1, FALSE, text);
 		break;
@@ -11367,7 +11386,7 @@ static void TDM_OpenMenu(CBasePlayer *pPlayer, int menu)
 	case TDM_MENU_SETUP_GEAR:
 		st->menuExpire = 0;
 		Q_snprintf(text, sizeof(text),
-			"\\yTDM setup (3/3): Free gear on every spawn\\w\n\n"
+			"\\yDeathmatch setup (4/4): Free gear on every spawn\\w\n\n"
 			"1. Armor + helmet + grenades\n"
 			"2. Armor + helmet\n"
 			"3. Grenades only\n"
@@ -11428,7 +11447,8 @@ static void TDM_AnnounceSetup()
 	static const char *gear[] = { "no free gear", "armor + grenades", "armor", "grenades" };
 
 	char msg[160];
-	Q_snprintf(msg, sizeof(msg), "TDM: %s, %s, %s",
+	Q_snprintf(msg, sizeof(msg), "%s: %s, %s, %s",
+		CSGameRules()->IsFreeForAll() ? "FFA" : "TDM",
 		spawns[Q_max(g_iHostSpawns, 0)], weapons[Q_max(g_iHostWeapons, 0)], gear[Q_max(g_iHostGear, 0)]);
 
 	UTIL_ClientPrintAll(HUD_PRINTCENTER, msg);
@@ -11453,10 +11473,28 @@ bool TDM_MenuSelect(CBasePlayer *pPlayer, int slot)
 
 	switch (menu)
 	{
+	case TDM_MENU_SETUP_MODE:
+		if (slot == 10)
+		{
+			UTIL_ClientPrintAll(HUD_PRINTCENTER, "Deathmatch: keeping current settings");
+			TDM_OnSpawnEquipped(pPlayer);
+			return true;
+		}
+		if (slot != 1 && slot != 2)
+		{
+			TDM_OpenMenu(pPlayer, menu);
+			return true;
+		}
+		g_iHostMode = (slot == 2) ? 1 : 0;
+		CVAR_SET_FLOAT("mp_freeforall", (float)g_iHostMode);
+		TDM_OpenMenu(pPlayer, TDM_MENU_SETUP_SPAWNS);
+		return true;
+
 	case TDM_MENU_SETUP_SPAWNS:
 		if (slot == 10)
 		{
 			UTIL_ClientPrintAll(HUD_PRINTCENTER, "TDM: keeping current settings");
+			TDM_OnSpawnEquipped(pPlayer);
 			return true;
 		}
 		g_iHostSpawns = (slot == 1) ? 1 : 0;
@@ -11491,7 +11529,7 @@ bool TDM_MenuSelect(CBasePlayer *pPlayer, int slot)
 			return true;
 		}
 
-		if (slot == 10)
+		if (slot == 10 && st->lastPrimary)
 		{
 			// same as last time: both weapons, no more questions
 			WeaponInfoStruct *p = GetWeaponInfo(st->lastPrimary);
@@ -11502,6 +11540,8 @@ bool TDM_MenuSelect(CBasePlayer *pPlayer, int slot)
 				TDM_PickWeapon(pPlayer, st, p->entityName, true);
 				pPlayer->SelectItem(p->entityName);
 			}
+			if (!st->lastSecondary)
+				TDM_OpenMenu(pPlayer, TDM_MENU_SECONDARY);
 			return true;
 		}
 
@@ -11568,8 +11608,27 @@ void TDM_OnSpawnEquipped(CBasePlayer *pPlayer)
 	}
 
 	TDMPlayerState *st = TDM_State(pPlayer);
-	if (st && st->menu >= TDM_MENU_SETUP_SPAWNS && st->menu <= TDM_MENU_SETUP_GEAR)
+	if (st && st->menu >= TDM_MENU_SETUP_MODE && st->menu <= TDM_MENU_SETUP_GEAR)
 		return; // the host is still answering the setup
+
+	if (st)
+	{
+		st->menu = TDM_MENU_NONE;
+		st->menuExpire = 0;
+		ShowMenu(pPlayer, 0, 0, FALSE, "");
+		WeaponInfoStruct *primary = GetWeaponInfo(st->lastPrimary);
+		WeaponInfoStruct *secondary = GetWeaponInfo(st->lastSecondary);
+		if (primary && primary->entityName)
+		{
+			if (secondary && secondary->entityName)
+				TDM_PickWeapon(pPlayer, st, secondary->entityName, false);
+			TDM_PickWeapon(pPlayer, st, primary->entityName, true);
+			pPlayer->SelectItem(primary->entityName);
+			if (!secondary || !secondary->entityName)
+				TDM_OpenMenu(pPlayer, TDM_MENU_SECONDARY);
+			return;
+		}
+	}
 
 	TDM_OpenMenu(pPlayer, TDM_MENU_PRIMARY);
 }
@@ -11577,6 +11636,15 @@ void TDM_OnSpawnEquipped(CBasePlayer *pPlayer)
 // Console / chat command to reopen the host setup ("tdm_setup" or "!setup" in chat)
 bool TDM_ClientCommand(CBasePlayer *pPlayer, const char *pcmd, const char *parg1)
 {
+	bool gunsChat = (FStrEq(pcmd, "say") || FStrEq(pcmd, "say_team")) && parg1
+		&& (FStrEq(parg1, "!guns") || FStrEq(parg1, "/guns"));
+	if (FStrEq(pcmd, "tdm_guns") || gunsChat)
+	{
+		if (weapon_menu.value != 0.0f && pPlayer->IsAlive() && !pPlayer->m_bIsVIP)
+			TDM_OpenMenu(pPlayer, TDM_MENU_PRIMARY);
+		return !gunsChat;
+	}
+
 	bool chat = (FStrEq(pcmd, "say") || FStrEq(pcmd, "say_team")) && parg1
 		&& (FStrEq(parg1, "!setup") || FStrEq(parg1, "/setup"));
 
@@ -11584,7 +11652,7 @@ bool TDM_ClientCommand(CBasePlayer *pPlayer, const char *pcmd, const char *parg1
 		return false;
 
 	if (TDM_IsHost(pPlayer))
-		TDM_OpenMenu(pPlayer, TDM_MENU_SETUP_SPAWNS);
+		TDM_OpenMenu(pPlayer, TDM_MENU_SETUP_MODE);
 	else
 		ClientPrint(pPlayer->pev, HUD_PRINTCONSOLE, "Only the host can change the TDM setup.\n");
 

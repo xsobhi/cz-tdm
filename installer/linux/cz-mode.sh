@@ -1,16 +1,21 @@
 #!/bin/bash
 # Switches Counter-Strike: Condition Zero between TDM and the original game.
-# Usage: cz-mode.sh tdm|normal|status [--launch]
+# Usage: cz-mode.sh tdm|ffa|normal|status [--launch]
 CZERO="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 LIBLIST="$CZERO/liblist.gam"
 
 set_dll() { sed -i "s#^gamedll_linux .*#gamedll_linux \"$1\"#" "$LIBLIST"; }
 
 case "$1" in
-  tdm)    set_dll dlls/cstdm.so; echo "CZ mode: TDM";;
+  tdm)    echo 'mp_freeforall 0' > "$CZERO/tdm_mode.cfg"; set_dll dlls/cstdm.so; echo "CZ mode: TDM";;
+  ffa)    echo 'mp_freeforall 1' > "$CZERO/tdm_mode.cfg"; set_dll dlls/cstdm.so; echo "CZ mode: FFA";;
   normal) set_dll dlls/cs.so;    echo "CZ mode: original";;
-  status|"") grep -q 'cstdm' "$LIBLIST" && echo "CZ mode: TDM" || echo "CZ mode: original"; exit 0;;
-  *) echo "Usage: $0 tdm|normal|status [--launch]"; exit 1;;
+  status|"")
+    if ! grep -q 'cstdm' "$LIBLIST"; then echo "CZ mode: original"
+    elif grep -q '^mp_freeforall 1' "$CZERO/tdm_mode.cfg" 2>/dev/null; then echo "CZ mode: FFA"
+    else echo "CZ mode: TDM"; fi
+    exit 0;;
+  *) echo "Usage: $0 tdm|ffa|normal|status [--launch]"; exit 1;;
 esac
 
 if [ "$2" = "--launch" ]; then
