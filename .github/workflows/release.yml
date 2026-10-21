@@ -132,5 +132,7 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
+          files: |
+            artifacts/*.exe
+            artifacts/*.tar.gz
           generate_release_notes: true
